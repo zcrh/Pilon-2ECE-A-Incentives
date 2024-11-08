@@ -140,7 +140,8 @@ instrumentalness_%    int64    866
 liveness_%            int64      0            
 speechiness_%         int64      0
 ```
-### Insights
+### Insights 💡
+The generated output presents a table listing each column's name, data type, and the count of missing values, if any. Additionally, it shows the total number of rows and columns in the Spotify dataset, which contains 983 rows and 24 columns. Based on the results, there are numerous missing values, particularly in the instrumentalness_% column.
 
 ### Basic Descriptive Statistics
 
@@ -216,7 +217,13 @@ Most released year: 2022 with 402 tracks
 ```python
 Most frequent number of artists: 1 with 586 tracks
 ```
-### Insights
+### Insights 💡
+The descriptive statistics on streams suggest a right-skewed distribution with a small number of popular songs, which receive an equal amount of streams. Most songs likely have stream counts closer to the median, with only a few reaching numbers near or above the mean.
+
+Regarding the distribution of released year, there has been an increase in songs released in recent years, especially from around 2020 onwards, indicating a surge in releases during this period. The frequency of releases in the latest years is an outlier compared to previous years, suggesting an accelerated rate of releases.
+
+On the other side, the distribution of artist count is heavily skewed toward single-artist releases, implying that most songs involve only one artist. Fewer collaborative releases are evident as more artists join, making these multi-artist collaborations rare occurrences.
+
 ### Top Performers
 
 1. Which track has the highest number of streams? Display the top 5 most streamed tracks.
@@ -279,8 +286,9 @@ Streams: 3,703,895,074
 ```
 ![image](https://github.com/user-attachments/assets/ce29f2b2-bd17-4ba0-86d2-cd5bf49b3885)
 
+### Insights 💡
+The "Top 5 Most Streamed Tracks" graph showcases songs with high streaming numbers, each accumulating billions of plays. Leading this list is "Blinding Lights" by The Weeknd, which has surpassed 3.7 billion streams, closely followed by Ed Sheeran's "Shape of You." In the "Top 5 Most Frequent Artists" graph, Taylor Swift ranks first with a total of 34 tracks. Together, these charts highlight both individual tracks that capture massive audiences and artists who maintain high visibility in the music streaming landscape through frequent releases.
 
-### Insights
 ### Temporal Trends
 1. Analyze the trends in the number of tracks released over time. Plot the number of tracks released per year.
 2. Does the number of tracks released per month follow any noticeable patterns? Which month sees the most releases?
@@ -349,7 +357,9 @@ The year 2022 had the most releases with 402 tracks.
 January had the highest number of releases with 133 tracks.
 ```
 
-### Insights
+### Insights 💡
+The graph showing the number of tracks released per year reveals a sharp rise in releases, particularly around 2020, with 2022 marking the peak year for track releases. Meanwhile, the monthly distribution of releases indicates that January had the highest number of releases, totaling 134 tracks. This pattern suggests seasonal trends in music release strategies, with higher numbers of releases at the beginning and middle of the year.
+
 ### Genre and Music Characteristics
 
 1. Examine the correlation between streams and musical attributes like bpm, danceability_%, and energy_%. Which attributes seem to influence streams the most?
@@ -360,25 +370,140 @@ January had the highest number of releases with 133 tracks.
 #### 🏁 OUTPUT
 ```python
 ```
-### Insights
+### Insights 💡
 ### Platform Popularity
 
 1. How do the numbers of tracks in spotify_playlists, deezer_playlists, and apple_playlists compare? Which platform seems to favor the most popular tracks?
 #### 🖥️ INPUT
 ```python
+# Function to clean and filter columns, it removes commas and converts to numeric
+def clean_column(column):
+    column = column.astype(str)                             #Convert to string to handle non-numeric values
+    column = column.str.replace(',', '')                    #Remove commas from numbers
+    return pd.to_numeric(column, errors='coerce')           #Convert back to numbers, replace non-convertible with NaN
+    
+#Ensure the playlist columns are numeric
+platform_columns = ['in_spotify_playlists', 'in_deezer_playlists', 'in_apple_playlists']
+spotify[platform_columns] = spotify[platform_columns].apply(clean_column)
+
+#Clean the 'streams' column
+spotify['streams'] = clean_column(spotify['streams'])
+
+#Sums only the non-zero and non-NaN values
+playlist_counts = spotify[platform_columns].where(spotify[platform_columns] > 0).sum()
+
+#Calculate the total streams for each platform by summing streams where a track is in the playlist
+streams_spotify = spotify.loc[spotify['in_spotify_playlists'] > 0, 'streams'].sum()
+streams_deezer = spotify.loc[spotify['in_deezer_playlists'] > 0, 'streams'].sum()
+streams_apple = spotify.loc[spotify['in_apple_playlists'] > 0, 'streams'].sum()
+
+#Determine the platform that favors the most popular tracks 
+streaming_platforms = {
+    'Spotify': streams_spotify,
+    'Deezer': streams_deezer,
+    'Apple': streams_apple
+}
+famous_platform = max(streaming_platforms, key=streaming_platforms.get)
+
+# Plot the comparison of the number of tracks in playlists across platforms
+plt.figure(figsize=(8, 6))
+playlist_counts.plot(kind='bar', color=['orange', 'purple', 'green'])
+# Set the title, labels and xticks
+plt.title("Comparison of Number of Tracks in Playlists Across Platforms",fontsize=15,fontfamily='cambria',fontweight='bold')
+plt.ylabel("Number of Tracks",fontsize=13,fontfamily='cambria',fontweight='bold')
+plt.xticks(ticks=range(len(playlist_counts)), labels=["Spotify Playlist", "Deezer Playlist", "Apple Playlist"], rotation=0,fontsize=13,fontfamily='cambria')
+
+# Remove scientific notation from Y-axis
+plt.ticklabel_format(style='plain', axis='y')
+
+# Show the plot
+plt.show()
+
+# Print out the platform that favors the most popular tracks
+print(f"\nThe platform that favors the most popular tracks (highest total streams): {famous_platform}")
+
 ```
 #### 🏁 OUTPUT
+![image](https://github.com/user-attachments/assets/fb601908-3018-445d-8b84-a1d25c468ad9)
 ```python
+The platform that favors the most popular tracks (highest total streams): Spotify
 ```
-### Insights
+### Insights 💡
+Spotify leads with nearly 5 million tracks in playlists, highlighting its popularity. In comparison, Deezer has significantly fewer tracks, and Apple Music features even fewer, suggesting a lesser focus on playlists. This data underscores Spotify's dominance in music discovery and playlisting, while other platforms struggle to compete with its vast database.
+
 ### Advanced Analysis
 
 1. Based on the streams data, can you identify any patterns among tracks with the same key or mode (Major vs. Minor)?
 2. Do certain genres or artists consistently appear in more playlists or charts? Perform an analysis to compare the most frequently appearing artists in playlists or charts.
 #### 🖥️ INPUT
 ```python
+#Grouping by key and calculating the average streams per key
+key = spotify.groupby('key')['streams'].mean().sort_index()
+
+#Grouping by mode and calculating the average streams per mode
+mode = spotify.groupby('mode')['streams'].mean()
+
+#Plotting average streams per key
+#Set figure size for plot
+plt.figure(figsize=(15, 6))
+plt.bar(key.index, key.values,color=['purple'])                                      #Create bar plot for average streams per key
+plt.title('Average Streams (Key)',fontsize=15,fontfamily='cambria',fontweight='bold')            #Create a title for the graph and styling
+plt.xlabel('Key',fontsize=13,fontfamily='cambria',fontweight='bold')                             #Label the x-axis
+plt.ylabel('Average Streams',fontsize=13,fontfamily='cambria',fontweight='bold')                 #Label the y-axis
+plt.xticks(fontsize=13,fontfamily='cambria')                                                     #Customizing the fontsize and fontfamily for the x-axis ticks
+plt.yticks(fontsize=13,fontfamily='cambria')                                                     #Customizing the fontsize and fontfamily for the y-axis ticks
+plt.show()                                                                                       #Display the plot
+
+#Plotting average streams per mode (0 = Minor, 1 = Major)
+plt.figure(figsize=(15, 6))                                                                 #Set figure size for plot
+mode_labels = ['Minor', 'Major']                                                            #Define labels for mode categories
+plt.bar(mode_labels, mode.values, color=['yellow', 'green'])                          #Create bar plot for average streams per mode
+plt.title('Average Streams (Mode)',fontsize=15,fontfamily='cambria',fontweight='bold')      #Create a title for the graph and styling
+plt.xlabel('Mode',fontsize=13,fontfamily='cambria',fontweight='bold')                       #Label the x-axis
+plt.ylabel('Average Streams',fontsize=13,fontfamily='cambria',fontweight='bold')            #Label the y-axis
+plt.xticks(fontsize=13,fontfamily='cambria')                                                #Customizing the fontsize and fontfamily for the x-axis ticks
+plt.yticks(fontsize=13,fontfamily='cambria')                                                #Customizing the fontsize and fontfamily for the y-axis ticks
+plt.show()
+
+
+#Define columns involved in playlist/chart appearances and convert to numeric with non-numeric values set to 0
+playlist_chart_columns = [
+    'in_shazam_charts', 'in_deezer_playlists','in_spotify_playlists','in_spotify_charts','in_apple_playlists','in_apple_charts','in_deezer_charts'
+]
+
+#Convert each playlist or chart column to integer, filling non-numeric values with 0
+for col in playlist_chart_columns:
+    spotify[col] = pd.to_numeric(spotify[col], errors='coerce').fillna(0).astype(int)
+
+#Calculating the total appearances in playlists and charts for each track
+spotify['total_appearances'] = spotify[playlist_chart_columns].sum(axis=1)
+
+#Grouping by artist name to calculate total appearance across playlists and charts
+artist_appearances = spotify.groupby('artist(s)_name')['total_appearances'].sum()
+
+#Identifying the top 15 artists with the most appearances
+top_artists = artist_appearances.sort_values(ascending=False).head(15)
+
+#Plotting the top artists based on their appearances in playlists and charts
+plt.figure(figsize=(12, 8))
+#Create bar plot for top artist appearances
+top_artists.plot(kind='bar', color='cyan', edgecolor='black')
+plt.title('Top 15 Artists Appearances across playlists and charts',fontsize=15,fontfamily='cambria',fontweight='bold')           #Create a title for the graph and styling
+plt.xlabel('Artist',fontsize=13,fontfamily='cambria',fontweight='bold')                                                          #Label the x-axis
+plt.ylabel('Total Appearances',fontsize=13,fontfamily='cambria',fontweight='bold')                                               #Label the y-axis
+plt.xticks(rotation=45, ha='right',fontsize=11,fontfamily='cambria')                                                             #Rotate x-axis labels and customizing for readability
+plt.show()                                                                                                                       #Display the plot
+
 ```
 #### 🏁 OUTPUT
-```python
-```
-### Insights
+![image](https://github.com/user-attachments/assets/f52ad80a-26f9-47aa-9668-e96aff23556d)
+![image](https://github.com/user-attachments/assets/8fa9be09-e99c-44c8-abc1-1e28f624d11f)
+![image](https://github.com/user-attachments/assets/e2040d19-a6de-40b2-9633-304f839057de)
+
+### Insights 💡
+
+The key C# exhibits the highest average streams, indicating that tracks in this key generally perform better in terms of streaming numbers. In contrast, the key A shows relatively lower average streams compared to other keys, suggesting it may be less popular or have fewer tracks with high streaming counts. Overall, while there is some variation among the keys, most tend to cluster around similar average stream values.
+
+Tracks in Minor mode have slightly higher average streams compared to those in Major mode. This could suggest that Minor mode tracks are more popular, have higher engagement, or contain more high-stream tracks on average than Major mode tracks.
+
+The graph "Top 15 Artists Appearances across Playlists and Charts" shows The Weeknd leading with over 140,000 appearances, followed closely by Taylor Swift and Ed Sheeran. Other significant artists include Harry Styles, Eminem, and Arctic Monkeys. In contrast, artists like Pharrell Williams, Nile Rodgers, Daft Punk, and The Killers show significantly fewer appearances.
