@@ -141,7 +141,7 @@ liveness_%            int64      0
 speechiness_%         int64      0
 ```
 ### Insights 💡
-The generated output presents a table listing each column's name, data type, and the count of missing values, if any. Additionally, it shows the total number of rows and columns in the Spotify dataset, which contains 983 rows and 24 columns. Based on the results, there are numerous missing values, particularly in the instrumentalness_% column.
+The generated output presents a table listing each column's name, data type, and the count of missing values, if any. Additionally, it shows the total number of rows and columns in the Spotify dataset, which contains 953 rows and 24 columns. Based on the results, there are numerous missing values, particularly in the instrumentalness_% column.
 
 ### Basic Descriptive Statistics
 
