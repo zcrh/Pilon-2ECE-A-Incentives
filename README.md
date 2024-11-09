@@ -366,11 +366,90 @@ The graph showing the number of tracks released per year reveals a sharp rise in
 2. Is there a correlation between danceability_% and energy_%? How about valence_% and acousticness_%?
 #### 🖥️ INPUT
 ```python
+#Convert streams column to numeric to ensure it's processed correctly and avoid errors
+spotify['streams'] = pd.to_numeric(spotify['streams'], errors='coerce')
+
+#Replace missing data and zero values with NaN and removing them
+spotify[['streams', 'bpm', 'danceability_%', 'valence_%', 'energy_%', 
+         'acousticness_%', 'instrumentalness_%', 'liveness_%', 'speechiness_%']] = spotify[
+    ['streams', 'bpm', 'danceability_%', 'valence_%', 'energy_%', 
+     'acousticness_%', 'instrumentalness_%', 'liveness_%', 'speechiness_%']
+].replace(0, np.nan).dropna()
+
+#To get a numerical to correlate with streams, group the key and mode and getting its average
+key_avg_streams = spotify.groupby('key')['streams'].mean()
+mode_avg_streams = spotify.groupby('mode')['streams'].mean()
+
+#Place the average streams back to the original dataframe for correlation
+spotify['key'] = spotify['key'].map(key_avg_streams)
+spotify['mode'] = spotify['mode'].map(mode_avg_streams)
+
+#List required columns for interpretation
+attributes = ['streams', 'bpm', 'key', 'mode', 'danceability_%', 
+              'valence_%', 'energy_%', 'acousticness_%', 'instrumentalness_%', 
+              'liveness_%', 'speechiness_%']
+
+#Calculate the correlation
+correlation_matrix = spotify[attributes].corr()
+
+#Display sorted correlation values for 'streams' 
+streams_corr = correlation_matrix['streams'].sort_values(ascending=False)
+
+# Plot the correlation of each attribute with streams
+plt.figure(figsize=(15, 6))
+streams_corr.drop('streams').plot(kind='bar', color='purple', edgecolor='black')
+plt.title("Correlation of Musical Attributes with Streams",fontfamily='cambria',fontsize=20,fontweight='bold')      #Create a title for the graph
+plt.xlabel("Musical Attributes",fontfamily='cambria',fontsize=20,fontweight='bold')                                 #Label the x-axis
+plt.ylabel("Correlation with Streams",fontfamily='cambria',fontsize=13,fontweight='bold')                           #Label the y-axis
+plt.xticks(rotation=45, ha='right',fontfamily='cambria',fontsize=13)                                                #Customizing the fontsize and fontfamily for the x-axis ticks
+plt.yticks(fontfamily='cambria',fontsize=13)                                                                        #Customizing the fontsize and fontfamily for the y-axis ticks
+plt.tight_layout()                                                                                                  #Adjust elements to fit 
+#Display the plot
+plt.show()
+
+
+#Convert involved columns to numeric to handle any potential issues
+spotify['danceability_%'] = pd.to_numeric(spotify['danceability_%'], errors='coerce')
+spotify['energy_%'] = pd.to_numeric(spotify['energy_%'], errors='coerce')
+spotify['valence_%'] = pd.to_numeric(spotify['valence_%'], errors='coerce')
+spotify['acousticness_%'] = pd.to_numeric(spotify['acousticness_%'], errors='coerce')
+
+#Replacing the 0 and NaN values and removing them from the graph to avoid errors
+spotify[['danceability_%', 'energy_%', 'valence_%', 'acousticness_%']] = spotify[
+    ['danceability_%', 'energy_%', 'valence_%', 'acousticness_%']
+].replace(0, np.nan).dropna()
+
+#Graphing scatter plots for each pair with a regression line
+plt.figure(figsize=(12, 5))
+
+# Scatter plot for danceability_% vs energy_%
+plt.subplot(1, 2, 1)
+sns.regplot(x='danceability_%', y='energy_%', data=spotify, scatter_kws={'alpha':0.5}, line_kws={'color': 'black'})
+plt.title("Danceability % vs Energy %",fontfamily='cambria',fontsize=15,fontweight='bold')                                         #Create a title for the graph
+plt.xlabel("Danceability %",fontfamily='cambria',fontsize=13,fontweight='bold')                                                    #Label the x-axis
+plt.ylabel("Energy %",fontfamily='cambria',fontsize=13,fontweight='bold')                                                          #Label the y-axis
+plt.xticks(fontfamily='cambria',fontsize=13)                                                                                       #Formatting the x-axis ticks
+plt.yticks(fontfamily='cambria',fontsize=13)                                                                                       #Formatting the y-axis ticks
+
+# Scatter plot for valence_% vs acousticness_%
+plt.subplot(1, 2, 2)
+sns.regplot(x='valence_%', y='acousticness_%', data=spotify, scatter_kws={'alpha':0.5}, line_kws={'color': 'black'})
+plt.title("Valence % vs Acousticness %",fontfamily='cambria',fontsize=15,fontweight='bold')                                     #Create a title for the graph
+plt.xlabel("Valence %",fontfamily='cambria',fontsize=13,fontweight='bold')                                                      #Label the x-axis
+plt.ylabel("Acousticness %",fontfamily='cambria',fontsize=13,fontweight='bold')                                                 #Label the x-axis
+plt.xticks(fontfamily='cambria',fontsize=13)                                                                                    #Formatting the y-axis ticks
+plt.yticks(fontfamily='cambria',fontsize=13)                                                                                    #Formatting the y-axis ticks
+plt.tight_layout()                                                                                                              #Adjust elements to fit
+#Display the plot
+plt.show() 
 ```
 #### 🏁 OUTPUT
-```python
-```
+![image](https://github.com/user-attachments/assets/39d368a0-df27-4ad0-81f8-0e2595727565)
+
 ### Insights 💡
+Key and Mode appear to have the most influence on streaming numbers, with key showing a notable correlation. This could mean that listeners may favor certain tonalities or moods associated with specific keys and modes. Liveness and other musical attributes contribute less significantly, with generally weak correlations, indicating that these factors alone are not major predictors of streaming success. 
+
+Based on the Danceability and Energy correlation. They are somewhat positively correlated, meaning more danceable songs tend to be energetic. On the Valence and Acousticness correlation, it shows a weak inverse relationship, implying that more positive-sounding songs are minimally less acoustic, but the trend is not strong.
 ### Platform Popularity
 
 1. How do the numbers of tracks in spotify_playlists, deezer_playlists, and apple_playlists compare? Which platform seems to favor the most popular tracks?
